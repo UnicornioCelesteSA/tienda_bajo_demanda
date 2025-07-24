@@ -1,0 +1,47 @@
+/* src/components/HeroLogo.css */
+.hero-logo {
+  position: relative;
+  background: #000;
+  color: #fff;
+  min-height: 60vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.hero-logo::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: url("./assets/logo.png") center/contain no-repeat;
+  opacity: 0.05;
+  pointer-events: none;
+}
+
+.hero-logo__image {
+  width: 120px;
+  height: auto;
+}
+
+.hero-logo__title {
+  font-size: 2.5rem;
+  font-weight: 700;
+}
+
+.hero-logo__subtitle {
+  font-size: 1.1rem;
+  opacity: 0.8;
+}
+
+@media (max-width: 767px) {
+  .hero-logo__title {
+    font-size: 2rem;
+  }
+  .hero-logo__subtitle {
+    font-size: 1rem;
+  }
+}

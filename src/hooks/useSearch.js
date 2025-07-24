@@ -1,3 +1,4 @@
+// src/hooks/useSearch.js
 import { useState, useEffect } from "react";
 
 export const useSearch = (data, delay = 300) => {
@@ -6,14 +7,15 @@ export const useSearch = (data, delay = 300) => {
 
   useEffect(() => {
     const id = setTimeout(() => {
-      setResult(
-        data.filter(
-          (p) =>
-            p.name.toLowerCase().includes(term.toLowerCase()) ||
-            p.category?.toLowerCase().includes(term.toLowerCase())
-        )
-      );
+      const lower = term.toLowerCase();
+      const filtered = data.filter((p) => {
+        const name = (p.name || p.title || "").toString().toLowerCase();
+        const category = (p.category || "").toString().toLowerCase();
+        return name.includes(lower) || category.includes(lower);
+      });
+      setResult(filtered);
     }, delay);
+
     return () => clearTimeout(id);
   }, [term, data, delay]);
 

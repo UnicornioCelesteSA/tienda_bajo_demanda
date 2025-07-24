@@ -1,20 +1,24 @@
-import React, { useState, useEffect } from "react";
+// src/components/ProductList.js
+import React, { useState, useEffect, useContext } from "react";
 import { getAll, remove } from "../services/productService";
-import { ProductForm } from "./ProductForm";
 import { useSearch } from "../hooks/useSearch";
 import { Pagination } from "./Pagination";
 import { toast } from "react-toastify";
-import Modal from "react-bootstrap/Modal";
-import Button from "react-bootstrap/Button";
+import { CarritoContext } from "../context/CarritoContext";
+import { Helmet } from "react-helmet-async";
+import { Card, Button, Row, Col, Modal } from "react-bootstrap";
+import { ProductForm } from "./ProductForm";
 
 export const ProductList = () => {
-  // Datos originales
+  // Estado de productos y CRUD
   const [products, setProducts] = useState([]);
-  // Para edición y borrado
   const [editItem, setEditItem] = useState(null);
   const [toDelete, setToDelete] = useState(null);
 
-  // Carga inicial
+  // Contexto de carrito
+  const { addItem } = useContext(CarritoContext);
+
+  // Carga inicial de productos
   const load = () => {
     getAll()
       .then(setProducts)
@@ -22,102 +26,122 @@ export const ProductList = () => {
   };
   useEffect(load, []);
 
-  // Búsqueda con debounce
+  // Búsqueda y paginación
   const { term, setTerm, result } = useSearch(products);
-
-  // Paginación
-  const perPage = 10;
+  const perPage = 8;
   const [page, setPage] = useState(1);
   const start = (page - 1) * perPage;
   const pageItems = result.slice(start, start + perPage);
 
-  // Confirmar borrado
+  // Confirmación de borrado
   const confirmDelete = async () => {
-    try {
-      await remove(toDelete.id);
-      toast.success("Producto eliminado");
-      setToDelete(null);
-      load();
-    } catch {
-      toast.error("Error al eliminar");
-    }
+    await remove(toDelete.id);
+    toast.success("Producto eliminado");
+    setToDelete(null);
+    load();
   };
 
   return (
-    <div className="container py-4">
-      {/* Buscador */}
-      <input
-        type="text"
-        className="form-control mb-3"
-        placeholder="Buscar por nombre o categoría..."
-        value={term}
-        onChange={(e) => {
-          setTerm(e.target.value);
-          setPage(1);
-        }}
-      />
+    <>
+      <Helmet>
+        <title>Productos | Tienda Bajo Demanda</title>
+        <meta
+          name="description"
+          content="Listado de productos disponibles para agregar al carrito."
+        />
+      </Helmet>
 
-      {/* Botón para crear nuevo */}
-      <div className="d-flex justify-content-end mb-2">
-        <button className="btn btn-success" onClick={() => setEditItem({})}>
-          + Nuevo Producto
-        </button>
+      <div className="container py-4">
+        {/* Buscador y botón Nuevo */}
+        <Row className="mb-3">
+          <Col md={8}>
+            <input
+              type="text"
+              className="form-control"
+              placeholder="Buscar productos..."
+              value={term}
+              onChange={(e) => {
+                setTerm(e.target.value);
+                setPage(1);
+              }}
+            />
+          </Col>
+          <Col md={4} className="text-end">
+            <Button variant="success" onClick={() => setEditItem({})}>
+              + Nuevo Producto
+            </Button>
+          </Col>
+        </Row>
+
+        {/* Grid de Cards */}
+        <Row xs={1} sm={2} md={4} className="g-4">
+          {pageItems.map((p) => (
+            <Col key={p.id}>
+              <Card className="h-100">
+                <Card.Img
+                  variant="top"
+                  src={p.image}
+                  alt={p.title}
+                  style={{ objectFit: "contain", height: "200px" }}
+                />
+                <Card.Body className="d-flex flex-column">
+                  <Card.Title className="fs-6">{p.title}</Card.Title>
+                  <Card.Text className="mb-2 text-truncate">
+                    {p.description}
+                  </Card.Text>
+                  <div className="mt-auto">
+                    <strong>${p.price}</strong>
+                  </div>
+                </Card.Body>
+                <Card.Footer className="d-flex justify-content-between">
+                  {/*  ← Aquí está el botón para sumarlo al carrito */}
+                  <Button
+                    size="sm"
+                    variant="outline-success"
+                    onClick={() => addItem(p)}
+                    aria-label={`Añadir ${p.title} al carrito`}
+                  >
+                    🛒 Añadir
+                  </Button>
+
+                  {/* Editar */}
+                  <Button
+                    size="sm"
+                    variant="outline-primary"
+                    onClick={() => setEditItem(p)}
+                    aria-label={`Editar ${p.title}`}
+                  >
+                    ✏️
+                  </Button>
+
+                  {/* Eliminar */}
+                  <Button
+                    size="sm"
+                    variant="outline-danger"
+                    onClick={() => setToDelete(p)}
+                    aria-label={`Eliminar ${p.title}`}
+                  >
+                    🗑️
+                  </Button>
+                </Card.Footer>
+              </Card>
+            </Col>
+          ))}
+        </Row>
+
+        {/* Paginador */}
+        <Pagination
+          total={result.length}
+          perPage={perPage}
+          current={page}
+          onChange={(p) => {
+            setPage(p);
+            window.scrollTo(0, 0);
+          }}
+        />
       </div>
 
-      {/* Tabla de productos (página actual) */}
-      <table className="table table-striped">
-        <thead>
-          <tr>
-            <th>Nombre</th>
-            <th>Precio</th>
-            <th>Descripción</th>
-            <th style={{ width: "150px" }}>Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          {pageItems.map((p) => (
-            <tr key={p.id}>
-              <td>{p.name}</td>
-              <td>${p.price}</td>
-              <td>{p.description}</td>
-              <td>
-                <button
-                  className="btn btn-sm btn-outline-primary me-2"
-                  onClick={() => setEditItem(p)}
-                >
-                  ✏️
-                </button>
-                <button
-                  className="btn btn-sm btn-outline-danger"
-                  onClick={() => setToDelete(p)}
-                >
-                  🗑️
-                </button>
-              </td>
-            </tr>
-          ))}
-          {pageItems.length === 0 && (
-            <tr>
-              <td colSpan="4" className="text-center py-4">
-                No se encontraron productos.
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
-
-      {/* Paginador */}
-      <Pagination
-        total={result.length}
-        perPage={perPage}
-        current={page}
-        onChange={(p) => {
-          setPage(p);
-          window.scrollTo(0, 0);
-        }}
-      />
-
-      {/* Modal de formulario (crear/editar) */}
+      {/* Modal para crear/editar producto */}
       {editItem !== null && (
         <Modal show onHide={() => setEditItem(null)}>
           <Modal.Header closeButton>
@@ -137,12 +161,12 @@ export const ProductList = () => {
         </Modal>
       )}
 
-      {/* Modal de confirmación de borrado */}
+      {/* Modal de confirmación de eliminación */}
       <Modal show={!!toDelete} onHide={() => setToDelete(null)}>
         <Modal.Header closeButton>
           <Modal.Title>Confirmar Eliminación</Modal.Title>
         </Modal.Header>
-        <Modal.Body>¿Estás seguro de eliminar “{toDelete?.name}”?</Modal.Body>
+        <Modal.Body>¿Eliminar “{toDelete?.title}”?</Modal.Body>
         <Modal.Footer>
           <Button variant="secondary" onClick={() => setToDelete(null)}>
             Cancelar
@@ -152,6 +176,6 @@ export const ProductList = () => {
           </Button>
         </Modal.Footer>
       </Modal>
-    </div>
+    </>
   );
 };
